@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bvr:BVRModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bvr="http:///bvr.ecore/2.0.0" name="aadl_bvr">
+  <variabilityModel xsi:type="bvr:Choice" name="Choice0" target="//@variabilityModel/@ownedTargets.0" isImpliedByParent="true">
+    <ownedTargets name="Choice0"/>
+    <note name="comment" kind="comment" expr=""/>
+  </variabilityModel>
+  <realizationModel xsi:type="bvr:PlacementFragment" name="Placement0">
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ConnectedElement) 'EClassImpl').&lt;ConnectionEnd>connectionEnd" propertyName="connectionEnd" insideBoundaryElement="//@realizationModel.0/@sourceObject.0" outsideBoundaryElement="//@realizationModel.0/@sourceObject.1"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ConnectedElement) 'EClassImpl').&lt;ConnectionEnd>connectionEnd" propertyName="connectionEnd" insideBoundaryElement="//@realizationModel.0/@sourceObject.0" outsideBoundaryElement="//@realizationModel.0/@sourceObject.2"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((FeatureorPPReference) 'EClassImpl').&lt;NamedElement>featureorPP" propertyName="featureorPP" insideBoundaryElement="//@realizationModel.0/@sourceObject.0" outsideBoundaryElement="//@realizationModel.0/@sourceObject.3"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ProcessType) Electronic_Pedal).&lt;DataPort>ownedDataPort" propertyName="ownedDataPort" insideBoundaryElement="//@realizationModel.0/@sourceObject.0 //@realizationModel.0/@sourceObject.5 //@realizationModel.0/@sourceObject.9" outsideBoundaryElement="//@realizationModel.0/@sourceObject.4"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ConnectedElement) 'EClassImpl').&lt;ConnectionEnd>connectionEnd" propertyName="connectionEnd" insideBoundaryElement="//@realizationModel.0/@sourceObject.5" outsideBoundaryElement="//@realizationModel.0/@sourceObject.6"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ConnectedElement) 'EClassImpl').&lt;ConnectionEnd>connectionEnd" propertyName="connectionEnd" insideBoundaryElement="//@realizationModel.0/@sourceObject.5" outsideBoundaryElement="//@realizationModel.0/@sourceObject.7"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((FeatureorPPReference) 'EClassImpl').&lt;NamedElement>featureorPP" propertyName="featureorPP" insideBoundaryElement="//@realizationModel.0/@sourceObject.5" outsideBoundaryElement="//@realizationModel.0/@sourceObject.8"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((ConnectedElement) 'EClassImpl').&lt;ConnectionEnd>connectionEnd" propertyName="connectionEnd" insideBoundaryElement="//@realizationModel.0/@sourceObject.9" outsideBoundaryElement="//@realizationModel.0/@sourceObject.10"/>
+    <placementBoundaryElement xsi:type="bvr:ToPlacement" name="((FeatureorPPReference) 'EClassImpl').&lt;NamedElement>featureorPP" propertyName="featureorPP" insideBoundaryElement="//@realizationModel.0/@sourceObject.9" outsideBoundaryElement="//@realizationModel.0/@sourceObject.11"/>
+    <placementBoundaryElement xsi:type="bvr:FromPlacement" name="NULL" outsideBoundaryElement="//@realizationModel.0/@sourceObject.12" insideBoundaryElement="//@realizationModel.0/@sourceObject.12"/>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedDataPort.2"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPortConnection.3/@source"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPortConnection.4/@source"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAnnexSubclause.0/@parsedAnnexSubclause/@propagations.1/@featureorPPRef"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#hbs_spl.Electronic_Pedal"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedDataPort.1"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPortConnection.1/@source"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPortConnection.2/@source"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAnnexSubclause.0/@parsedAnnexSubclause/@propagations.0/@featureorPPRef"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedDataPort.0"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPortConnection.0/@destination"/>
+    </sourceObject>
+    <sourceObject>
+      <MOFRef href="hbs_spl.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAnnexSubclause.0/@parsedAnnexSubclause/@propagations.2/@featureorPPRef"/>
+    </sourceObject>
+    <sourceObject/>
+  </realizationModel>
+</bvr:BVRModel>

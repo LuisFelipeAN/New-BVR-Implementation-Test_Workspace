@@ -1,0 +1,15 @@
+Elemento{
+	fragmento de texto
+	Elemento:dependencias
+}.
+
+
+
+Elemento1{
+	XXXXXXXXXXX
+}
+
+Elemento2{
+	AAAAAAA
+	depende de 1
+}

@@ -1,0 +1,1754 @@
+package hbs_spl
+
+public
+	with ErrorModelLibrary, EMV2;
+	system WheelsBrakingSystem
+		
+	end WheelsBrakingSystem;
+
+	system implementation WheelsBrakingSystem.Imp	
+	subcomponents
+		
+		auxBat : device Auxiliary_Battery.auxBattery;
+		pwBat: process Powertrain_Battery.pw;
+		mechPedal: device Mechanical_Pedal.mech_pedal;
+		elecPedal: process Electronic_Pedal.elec_pedal;
+		comBus1: process Communication_Bus1.cbus1;
+		comBus2: process Communication_Bus2.cbus2;
+		
+		bu1: system Brake_Unit1.bu1;	
+		bu2: system Brake_Unit2.bu2;
+		bu3: system Brake_Unit3.bu3;	
+		bu4: system Brake_Unit4.bu4;
+		
+		connections
+			Mech2Elec: port mechPedal.out1 -> elecPedal.in1;
+			Elec12Bus1: port elecPedal.out1 -> comBus1.in1;
+			Elec12Bus2: port elecPedal.out1 -> comBus2.in1;
+			Elec22Bus1: port elecPedal.out2 -> comBus2.in2;
+			Elec22Bus2: port elecPedal.out2 -> comBus2.in2;
+			
+			CBus12Bu1: port comBus1.out1 -> bu1.in1;
+			CBus22Bu1: port comBus2.out1 -> bu1.in2;
+			PW2Bu1: port pwBat.out1 -> bu1.in4;
+			Aux2Bu1: port auxBat.out1 -> bu1.in3;
+			
+			CBus12Bu2: port comBus1.out1 -> bu2.in1;
+			CBus22Bu2: port comBus2.out1 -> bu2.in2;
+			PW2Bu2: port pwBat.out1 -> bu2.in4;
+			Aux2Bu2: port auxBat.out1 -> bu2.in3;
+			
+			CBus12Bu3: port comBus1.out1 -> bu3.in1;
+			CBus22Bu3: port comBus2.out1 -> bu3.in2;
+			PW2Bu3: port pwBat.out1 -> bu3.in4;
+			Aux2Bu3: port auxBat.out1 -> bu3.in3;
+			 
+			CBus12Bu4: port comBus1.out1 -> bu4.in1;
+			CBus22Bu4: port comBus2.out1 -> bu4.in2;
+			PW2Bu4: port pwBat.out1 -> bu4.in4;
+			Aux2Bu4: port auxBat.out1 -> bu4.in3; 
+			 
+			Bu12Pwt: port bu1.Generated_Power1 -> pwBat.in2;	
+			Bu22Pwt: port bu2.Generated_Power2 -> pwBat.in1;
+			Bu32Pwt: port bu3.Generated_Power3 -> pwBat.in3;	
+			Bu42Pwt: port bu4.Generated_Power4 -> pwBat.in4;	
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::FourErrorStates;
+			
+			composite error behavior
+			states
+				NoBrakingFourWheels: [bu1.ad.Failed and bu2.ad.Failed and bu3.ad.Failed and bu4.ad.Failed]-> NoValueState;
+				NoBrakingThreeWheels: [(bu1.ad.Failed and bu2.ad.Failed and bu3.ad.Failed) or (bu1.ad.Failed and bu2.ad.Failed and
+					bu4.ad.Failed) or (bu1.ad.Failed and bu3.ad.Failed and bu4.ad.Failed) or (bu2.ad.Failed and bu3.ad.Failed and
+					bu4.ad.Failed)]-> NoValueState;
+				ValueBraking: [bu1.Failed and bu2.Failed and bu3.Failed and bu4.Failed]-> BadValueState;
+				NoBrakingDiagonal: [(bu1.Failed and bu4.Failed) or (bu2.Failed and bu3.Failed)]-> NoValueState;
+				NoBrakingFront: [bu1.ad.Failed and bu2.ad.Failed]-> NoValueState;
+				NoBrakingRear: [bu3.ad.Failed and bu4.ad.Failed]-> NoValueState;
+			end composite;
+		**};
+					
+	end WheelsBrakingSystem.Imp;
+
+	device Mechanical_Pedal
+	features
+		out1 : out data port;
+	end Mechanical_Pedal;
+
+	device implementation Mechanical_Pedal.mech_pedal
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_mechFail: error source out1 {NoValue} when Failed;
+				v_mechFail: error source out1 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			events
+				OFailure1: error event;
+				VFailure1: error event;
+			transitions
+				t1: Operational -[OFailure1]-> Failed;
+				t2: Operational -[VFailure1]-> Failed;
+			propagations
+				o_out1: Operational -[]-> out1 {NoValue};
+				v_out1: Operational -[]-> out1 {BadValue};
+			end component;
+		**};
+		
+	end Mechanical_Pedal.mech_pedal;
+
+	device Auxiliary_Battery
+	features
+		out1 : out data port;
+			
+	end Auxiliary_Battery;
+
+	device implementation Auxiliary_Battery.auxBattery
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_auxFail: error source out1 {NoValue} when Failed;
+				v_auxFail: error source out1 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			events
+				OFailure1: error event;
+				VFailure1: error event;
+			transitions
+				t1: Operational -[OFailure1]-> Failed;
+				t2: Operational -[VFailure1]-> Failed;
+			propagations
+				o_out1: Operational -[]-> out1 {NoValue};
+				v_out1: Operational -[]-> out1 {BadValue};
+			end component;
+		**};	
+		
+	
+	end Auxiliary_Battery.auxBattery;
+
+--#Begin B1 *F1 .+
+	process Electronic_Pedal
+	features
+		in1 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+		
+	end Electronic_Pedal;
+--#End B1
+
+	process implementation Electronic_Pedal.elec_pedal
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_elecFail1: error source out1 {NoValue} when Failed;
+				v_elecFail1: error source out1 {BadValue} when Failed;
+				o_elecFail2: error source out2 {NoValue} when Failed;
+				v_elecFail2: error source out2 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			events
+				OFailure1: error event;
+				OFailure2: error event;
+				VFailure1: error event;
+				VFailure2: error event;
+			transitions
+				t1: Operational -[OFailure1]-> Failed;
+				t2: Operational -[OFailure2]-> Failed;
+				t3: Operational -[VFailure1]-> Failed;
+				t4: Operational -[VFailure2]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};	
+	end Electronic_Pedal.elec_pedal;
+
+	process Communication_Bus1
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;	
+				
+	end Communication_Bus1;
+
+	process implementation Communication_Bus1.cbus1
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bus1Fail: error source out1 {NoValue} when Failed;
+				v_bus1Fail: error source out1 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			events
+				OFailure1: error event;
+			transitions
+				t1: Operational -[OFailure1]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {NoValue} and in2 {BadValue})]-> out1 {BadValue};
+			end component;
+		**};	
+	
+	
+	end Communication_Bus1.cbus1;
+
+	process Communication_Bus2
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+	end Communication_Bus2;
+
+	process implementation Communication_Bus2.cbus2
+	annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bus2Fail: error source out1 {NoValue} when Failed;
+				v_bus2Fail: error source out1 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			events
+				OFailure1: error event;
+			transitions
+				t1: Operational -[OFailure1]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {NoValue} and in2 {BadValue})]-> out1 {BadValue};
+			end component;
+		**};	
+	end Communication_Bus2.cbus2;
+
+	process Powertrain_Battery
+	features
+		in1 : in data port;
+		in2 : in data port;
+		in3 : in data port;
+		in4 : in data port;
+		out1 : out data port;
+	end Powertrain_Battery;
+
+	process implementation Powertrain_Battery.pw
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_pw_Fail: error source out1 {NoValue} when Failed;
+				v_pw_Fail: error source out1 {BadValue} when Failed;
+			end propagations;
+			
+			component error behavior
+			transitions
+				t0: Operational -[in1 {NoValue} and in2 {NoValue} and in3 {NoValue} and in4 {NoValue}]-> Failed;
+				t1: Operational -[in1 {BadValue} and in2 {BadValue} and in3 {BadValue} and in4 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[]-> out1 {NoValue};
+				v_out1: Operational -[]-> out1 {BadValue};
+			end component;
+		**};	
+	end Powertrain_Battery.pw;
+
+	system Brake_Unit1
+	features
+		in1 : in data port;
+		in2 : in data port;
+		in3 : in data port;
+		in4 : in data port;
+		Generated_Power1 : out data port;
+		Braking_T1 : out data port;		
+	end Brake_Unit1;
+
+	system implementation Brake_Unit1.bu1
+	subcomponents
+		wnc : process Brake_Unit1_WNC.wnc;
+		embPw : process Brake_Unit1_EMB_Power_Converter.embpw;
+		iwmPw : process Brake_Unit1_IWM_Power_Converter.iwmpw;
+		iwm: process Brake_Unit1_IWM.iwm;
+		ad : process Brake_Unit1_Add.ad;
+		emb : process Brake_Unit1_EMB.emb;
+		
+		connections
+			Bin12WNC: port in1 -> wnc.in1;
+			Bin22WNC: port in2 -> wnc.in2; 
+			Bin32EMBPW: port in3 -> embPw.in2; 
+			Bin42IWM: port in4 -> iwm.in1;
+						
+			WNC12EMBPw: port wnc.out1 -> embPw.in1;
+			EMBPwout2EMB: port embPw.out1 -> emb.in1;
+			EMBout12Add: port emb.out1 -> ad.in1;
+			Addout2Braking_T1: port ad.Braking -> Braking_T1;
+			
+			WNC22IWMPw: port wnc.out2 -> iwmPw.in1;
+			IWMPw2BoutGenPower: port iwmPw.out1 -> Generated_Power1;
+			IWMPwout22IWM: port iwmPw.out2 -> iwm.in2;
+			IWM2IWMPw: port iwm.out2 -> iwmPw.in2;
+			IWM2Add: port iwm.out1 -> ad.in2;
+
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power1: out propagation {NoValue, BadValue};
+				Braking_T1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1Fail1: error source Generated_Power1 {NoValue} when Failed;
+				o_bu1Fail2: error source Braking_T1 {NoValue} when Failed;
+				v_bu1Fail1: error source Generated_Power1 {NoValue} when Failed;
+				v_bu1Fail2: error source Braking_T1 {NoValue} when Failed;
+					---omission input deviations
+				o_bu1_in1Fail: error path in1 {NoValue} -> Braking_T1 {NoValue};
+				o_bu1_in2Fail: error path in2 {NoValue} -> Braking_T1 {NoValue};
+				o_bu1_in3Fail: error path in3 {NoValue} -> Generated_Power1 {NoValue};
+				o_bu1_in4Fail: error path in4 {NoValue} -> Generated_Power1 {NoValue};
+					--value input deviations	
+				v_bu1_in1Fail: error path in1 {BadValue} -> Braking_T1 {BadValue};
+				v_bu1_in2Fail: error path in2 {BadValue} -> Braking_T1 {BadValue};
+				v_bu1_in3Fail: error path in3 {BadValue} -> Generated_Power1 {BadValue};
+				v_bu1_in4Fail: error path in4 {BadValue} -> Generated_Power1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw1: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power1 {NoValue};
+				o_brak_t1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T1 {NoValue};
+				v_gen_pw1: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power1 {BadValue};
+				v_brak_t1: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T1 {BadValue};
+			end component;
+		**};	
+	end Brake_Unit1.bu1;
+	
+	process Brake_Unit1_WNC
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;		
+	end Brake_Unit1_WNC;
+
+	process implementation Brake_Unit1_WNC.wnc
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1IWMFail1: error source out1 {NoValue} when Failed;
+				o_bu1IWMFail2: error source out2 {NoValue} when Failed;
+				v_bu1IWMFail1: error source out1 {BadValue} when Failed;
+				v_bu1IWMFail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu1IWM_in4Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu1IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu1IWM_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu1IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				o_out2: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out2 {BadValue};
+			end component;
+		**};
+	end Brake_Unit1_WNC.wnc;
+
+	process Brake_Unit1_EMB_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+	end Brake_Unit1_EMB_Power_Converter;
+
+	process implementation Brake_Unit1_EMB_Power_Converter.embpw
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1EMB_PwFail1: error source out1 {NoValue} when Failed;
+				v_bu1EMB_PWFail1: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu1WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu1_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu1WNC_Fail1: error path in1 {BadValue} -> out1 {BadValue};
+				v_bu1_Fail2: error path in2 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};		
+	
+	end Brake_Unit1_EMB_Power_Converter.embpw;
+
+	process Brake_Unit1_IWM_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;	
+		
+	end Brake_Unit1_IWM_Power_Converter;
+
+	process implementation Brake_Unit1_IWM_Power_Converter.iwmpw
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1IWM_PW_Fail1: error source out1 {NoValue} when Failed;
+				o_bu1IWM_PW_Fail2: error source out2 {NoValue} when Failed;
+				v_bu1IWM_PW_Fail1: error source out1 {BadValue} when Failed;
+				v_bu1IWM_PW_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu1WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu1IWM_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu1WNC_Fail1: error path in1 {BadValue} -> out2 {BadValue};
+				v_bu1IWM_Fail2: error path in2 {BadValue} -> out2 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+		
+	end Brake_Unit1_IWM_Power_Converter.iwmpw;
+
+	process Brake_Unit1_EMB
+	features
+		in1 : in data port;
+		out1 : out data port;
+	end Brake_Unit1_EMB;
+
+	process Brake_Unit1_IWM
+	
+	features
+		in1 : in data port;
+		out1 : out data port;
+		in2 : in data port;
+		out2 : out data port;
+	end Brake_Unit1_IWM;
+
+	process implementation Brake_Unit1_IWM.iwm
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1IWM_Fail1: error source out1 {NoValue} when Failed;
+				o_bu1IWM_Fail2: error source out2 {NoValue} when Failed;
+				v_bu1IWM_Fail1: error source out1 {BadValue} when Failed;
+				v_bu1IWM_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu1_in4_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu1IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu1_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu1IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit1_IWM.iwm;
+
+	process implementation Brake_Unit1_EMB.emb
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1EMB_Fail: error source out1 {NoValue} when Failed;
+				v_bu1EMB_Fail: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu1EMB_PwConverterFail: error path in1 {NoValue} -> out1 {NoValue};
+				v_bu1EMB_PwConverterFail: error path in1 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};
+	end Brake_Unit1_EMB.emb;
+
+	process Brake_Unit1_Add
+	features
+		in1 : in data port;
+		in2 : in data port;
+		Braking : out data port;
+	end Brake_Unit1_Add;
+
+	process implementation Brake_Unit1_Add.ad
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Braking: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu1Add_Fail: error source Braking {NoValue} when Failed;
+				v_bu1Add_Fail: error source Braking {BadValue} when Failed;
+					---input deviations
+				o_bu1EMB_Fail: error path in1 {NoValue} -> Braking {NoValue};
+				o_bu1IWM_Fail: error path in2 {NoValue} -> Braking {NoValue};
+				v_bu1EMB_Fail: error path in1 {BadValue} -> Braking {BadValue};
+				v_bu1IWMF_ail: error path in2 {BadValue} -> Braking {BadValue};
+			end propagations;
+			
+			component error behavior
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> Braking {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit1_Add.ad;
+
+	system Brake_Unit2
+	features
+		in1 : in data port;
+		in2 : in data port;
+		in3 : in data port;
+		in4 : in data port;
+		Generated_Power2 : out data port;
+		Braking_T2 : out data port;
+	end Brake_Unit2;
+
+	system implementation Brake_Unit2.bu2
+	subcomponents
+		wnc : process Brake_Unit2_WNC.wnc;
+		embPw : process Brake_Unit2_EMB_Power_Converter.embpw;
+		iwmPw : process Brake_Unit2_IWM_Power_Converter.iwmpw;
+		iwm: process Brake_Unit2_IWM.iwm;
+		ad : process Brake_Unit2_Add.ad;
+		emb : process Brake_Unit2_EMB.emb;
+		
+		connections
+			Bin2WNC: port in1 -> wnc.in1;
+			Bin22WNC: port in2 -> wnc.in2; 
+			Bin32EMBPW: port in3 -> embPw.in2; 
+			Bin42IWM: port in4 -> iwm.in1;
+						
+			WNC12EMBPw: port wnc.out1 -> embPw.in1;
+			EMBPwout2EMB: port embPw.out1 -> emb.in1;
+			EMBout12Add: port emb.out1 -> ad.in1;
+			Addout2Braking_T1: port ad.Braking -> Braking_T2;
+			
+			WNC22IWMPw: port wnc.out2 -> iwmPw.in1;
+			IWMPw2BoutGenPower: port iwmPw.out1 -> Generated_Power2;
+			IWMPwout22IWM: port iwmPw.out2 -> iwm.in2;
+			IWM2IWMPw: port iwm.out2 -> iwmPw.in2;
+			IWM2Add: port iwm.out1 -> ad.in2;
+			
+			annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power2: out propagation {NoValue, BadValue};
+				Braking_T2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2Fail1: error source Generated_Power2 {NoValue} when Failed;
+				o_bu2Fail2: error source Braking_T2 {NoValue} when Failed;
+				v_bu2Fail1: error source Generated_Power2 {NoValue} when Failed;
+				v_bu2Fail2: error source Braking_T2 {NoValue} when Failed;
+					---omission input deviations
+				o_bu2_in1Fail: error path in1 {NoValue} -> Braking_T2 {NoValue};
+				o_bu2_in2Fail: error path in2 {NoValue} -> Braking_T2 {NoValue};
+				o_bu2_in3Fail: error path in3 {NoValue} -> Generated_Power2 {NoValue};
+				o_bu2_in4Fail: error path in4 {NoValue} -> Generated_Power2 {NoValue};
+					--value input deviations	
+				v_bu2_in1Fail: error path in1 {BadValue} -> Braking_T2 {BadValue};
+				v_bu2_in2Fail: error path in2 {BadValue} -> Braking_T2 {BadValue};
+				v_bu2_in3Fail: error path in3 {BadValue} -> Generated_Power2 {BadValue};
+				v_bu2_in4Fail: error path in4 {BadValue} -> Generated_Power2 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw2: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power2 {NoValue};
+				o_brak_t2: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T2 {NoValue};
+				v_gen_pw2: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power2 {BadValue};
+				v_brak_t2: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T2 {BadValue};
+			end component;
+		**};				
+	end Brake_Unit2.bu2;
+
+	process Brake_Unit2_WNC
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;		
+	end Brake_Unit2_WNC;
+
+	process implementation Brake_Unit2_WNC.wnc
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2IWMFail1: error source out1 {NoValue} when Failed;
+				o_bu2IWMFail2: error source out2 {NoValue} when Failed;
+				v_bu2IWMFail1: error source out1 {BadValue} when Failed;
+				v_bu2IWMFail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu2IWM_in4Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu2IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu2IWM_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu2IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				o_out2: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit2_WNC.wnc;
+
+	process Brake_Unit2_EMB_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+	end Brake_Unit2_EMB_Power_Converter;
+
+	process implementation Brake_Unit2_EMB_Power_Converter.embpw
+			annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2EMB_PwFail1: error source out1 {NoValue} when Failed;
+				v_bu2EMB_PWFail1: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu2WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu2_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu2WNC_Fail1: error path in1 {BadValue} -> out1 {BadValue};
+				v_bu2_Fail2: error path in2 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};	
+	
+	end Brake_Unit2_EMB_Power_Converter.embpw;
+
+	process Brake_Unit2_IWM_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+	end Brake_Unit2_IWM_Power_Converter;
+
+	process implementation Brake_Unit2_IWM_Power_Converter.iwmpw
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2IWM_PW_Fail1: error source out1 {NoValue} when Failed;
+				o_bu2IWM_PW_Fail2: error source out2 {NoValue} when Failed;
+				v_bu2IWM_PW_Fail1: error source out1 {BadValue} when Failed;
+				v_bu2IWM_PW_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu2WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu2IWM_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu2WNC_Fail1: error path in1 {BadValue} -> out2 {BadValue};
+				v_bu2IWM_Fail2: error path in2 {BadValue} -> out2 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	
+	end Brake_Unit2_IWM_Power_Converter.iwmpw;
+
+	process Brake_Unit2_EMB
+	features
+		in1 : in data port;
+		out1 : out data port;
+	end Brake_Unit2_EMB;
+
+	process Brake_Unit2_IWM
+	features
+		in1 : in data port;
+		out1 : out data port;
+		in2 : in data port;
+		out2 : out data port;
+	end Brake_Unit2_IWM;
+
+	process implementation Brake_Unit2_IWM.iwm
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2IWM_Fail1: error source out1 {NoValue} when Failed;
+				o_bu2IWM_Fail2: error source out2 {NoValue} when Failed;
+				v_bu2IWM_Fail1: error source out1 {BadValue} when Failed;
+				v_bu2IWM_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu2_in4_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu2IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu2_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu2IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit2_IWM.iwm;
+
+	process implementation Brake_Unit2_EMB.emb
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2EMB_Fail: error source out1 {NoValue} when Failed;
+				v_bu2EMB_Fail: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu2EMB_PwConverterFail: error path in1 {NoValue} -> out1 {NoValue};
+				v_bu2EMB_PwConverterFail: error path in1 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit2_EMB.emb;
+
+	process Brake_Unit2_Add
+	features
+		in1 : in data port;
+		in2 : in data port;
+		Braking : out data port;
+	end Brake_Unit2_Add;
+
+	process implementation Brake_Unit2_Add.ad
+	
+	annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Braking: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu2Add_Fail: error source Braking {NoValue} when Failed;
+				v_bu2Add_Fail: error source Braking {BadValue} when Failed;
+					---input deviations
+				o_bu2EMB_Fail: error path in1 {NoValue} -> Braking {NoValue};
+				o_bu2IWM_Fail: error path in2 {NoValue} -> Braking {NoValue};
+				v_bu2EMB_Fail: error path in1 {BadValue} -> Braking {BadValue};
+				v_bu2IWM_Fail: error path in2 {BadValue} -> Braking {BadValue};
+			end propagations;
+			
+			component error behavior
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> Braking {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit2_Add.ad;
+
+	system Brake_Unit3
+	features
+		in1 : in data port;
+		in2 : in data port;
+		in3 : in data port;
+		in4 : in data port;
+		Generated_Power3 : out data port;
+		Braking_T3 : out data port;
+		
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power3: out propagation {NoValue, BadValue};
+				Braking_T3: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3Fail1: error source Generated_Power3 {NoValue} when Failed;
+				o_bu3Fail2: error source Braking_T3 {NoValue} when Failed;
+				v_bu3Fail1: error source Generated_Power3 {NoValue} when Failed;
+				v_bu3Fail2: error source Braking_T3 {NoValue} when Failed;
+					---omission input deviations
+				o_bu3_in1Fail: error path in1 {NoValue} -> Braking_T3 {NoValue};
+				o_bu3_in2Fail: error path in2 {NoValue} -> Braking_T3 {NoValue};
+				o_bu3_in3Fail: error path in3 {NoValue} -> Generated_Power3 {NoValue};
+				o_bu3_in4Fail: error path in4 {NoValue} -> Generated_Power3 {NoValue};
+					--value input deviations	
+				v_bu3_in1Fail: error path in1 {BadValue} -> Braking_T3 {BadValue};
+				v_bu3_in2Fail: error path in2 {BadValue} -> Braking_T3 {BadValue};
+				v_bu3_in3Fail: error path in3 {BadValue} -> Generated_Power3 {BadValue};
+				v_bu3_in4Fail: error path in4 {BadValue} -> Generated_Power3 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw3: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power3 {NoValue};
+				o_brak_t3: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T3 {NoValue};
+				v_gen_pw3: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power3 {BadValue};
+				v_brak_t3: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T3 {BadValue};
+			end component;
+		**};	
+		
+	end Brake_Unit3;
+
+	system implementation Brake_Unit3.bu3
+	subcomponents
+		wnc : process Brake_Unit3_WNC.wnc;
+		embPw : process Brake_Unit3_EMB_Power_Converter.embpw;
+		iwmPw : process Brake_Unit3_IWM_Power_Converter.iwmpw;
+		iwm: process Brake_Unit3_IWM.iwm;
+		ad : process Brake_Unit3_Add.ad;
+		emb : process Brake_Unit3_EMB.emb;
+		
+		connections
+			Bin12WNC: port in1 -> wnc.in1;
+			Bin22WNC: port in2 -> wnc.in2; 
+			Bin32EMBPW: port in3 -> embPw.in2; 
+			Bin42IWM: port in4 -> iwm.in1;
+						
+			WNC12EMBPw: port wnc.out1 -> embPw.in1;
+			EMBPwout2EMB: port embPw.out1 -> emb.in1;
+			EMBout12Add: port emb.out1 -> ad.in1;
+			Addout2Braking_T3: port ad.Braking -> Braking_T3;
+			
+			WNC22IWMPw: port wnc.out2 -> iwmPw.in1;
+			IWMPw2BoutGenPower: port iwmPw.out1 -> Generated_Power3;
+			IWMPwout22IWM: port iwmPw.out2 -> iwm.in2;
+			IWM2IWMPw: port iwm.out2 -> iwmPw.in2;
+			IWM2Add: port iwm.out1 -> ad.in2;
+			
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power3: out propagation {NoValue, BadValue};
+				Braking_T3: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3Fail1: error source Generated_Power3 {NoValue} when Failed;
+				o_bu3Fail2: error source Braking_T3 {NoValue} when Failed;
+				v_bu3Fail1: error source Generated_Power3 {NoValue} when Failed;
+				v_bu3Fail2: error source Braking_T3 {NoValue} when Failed;
+					---omission input deviations
+				o_bu3_in1Fail: error path in1 {NoValue} -> Braking_T3 {NoValue};
+				o_bu3_in2Fail: error path in2 {NoValue} -> Braking_T3 {NoValue};
+				o_bu3_in3Fail: error path in3 {NoValue} -> Generated_Power3 {NoValue};
+				o_bu3_in4Fail: error path in4 {NoValue} -> Generated_Power3 {NoValue};
+					--value input deviations	
+				v_bu3_in1Fail: error path in1 {BadValue} -> Braking_T3 {BadValue};
+				v_bu3_in2Fail: error path in2 {BadValue} -> Braking_T3 {BadValue};
+				v_bu3_in3Fail: error path in3 {BadValue} -> Generated_Power3 {BadValue};
+				v_bu3_in4Fail: error path in4 {BadValue} -> Generated_Power3 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw1: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power3 {NoValue};
+				o_brak_t1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T3 {NoValue};
+				v_gen_pw1: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power3 {BadValue};
+				v_brak_t1: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T3 {BadValue};
+			end component;
+		**};	
+	end Brake_Unit3.bu3;
+	
+	process Brake_Unit3_WNC
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+	end Brake_Unit3_WNC;
+
+	process implementation Brake_Unit3_WNC.wnc
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3IWMFail1: error source out1 {NoValue} when Failed;
+				o_bu3IWMFail2: error source out2 {NoValue} when Failed;
+				v_bu3IWMFail1: error source out1 {BadValue} when Failed;
+				v_bu3IWMFail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu3IWM_in4Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu3IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu3IWM_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu3IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				o_out2: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit3_WNC.wnc;
+
+	process Brake_Unit3_EMB_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+	end Brake_Unit3_EMB_Power_Converter;
+
+	process implementation Brake_Unit3_EMB_Power_Converter.embpw
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3EMB_PwFail1: error source out1 {NoValue} when Failed;
+				v_bu3EMB_PwFail1: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu3WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu3_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu3WNC_Fail1: error path in1 {BadValue} -> out1 {BadValue};
+				v_bu3_Fail2: error path in2 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};		
+	
+	end Brake_Unit3_EMB_Power_Converter.embpw;
+
+	process Brake_Unit3_IWM_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+	end Brake_Unit3_IWM_Power_Converter;
+
+	process implementation Brake_Unit3_IWM_Power_Converter.iwmpw
+		
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3IWM_PW_Fail1: error source out1 {NoValue} when Failed;
+				o_bu3IWM_PW_Fail2: error source out2 {NoValue} when Failed;
+				v_bu3IWM_PW_Fail1: error source out1 {BadValue} when Failed;
+				v_bu3IWM_PW_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu3WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu3IWM_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu3WNC_Fail1: error path in1 {BadValue} -> out2 {BadValue};
+				v_bu3IWM_Fail2: error path in2 {BadValue} -> out2 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit3_IWM_Power_Converter.iwmpw;
+
+	process Brake_Unit3_EMB
+	features
+		in1 : in data port;
+		out1 : out data port;
+	end Brake_Unit3_EMB;
+
+	process Brake_Unit3_IWM
+	features
+		in1 : in data port;
+		out1 : out data port;
+		in2 : in data port;
+		out2 : out data port;
+	end Brake_Unit3_IWM;
+
+	process implementation Brake_Unit3_IWM.iwm
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3IWM_Fail1: error source out1 {NoValue} when Failed;
+				o_bu3IWM_Fail2: error source out2 {NoValue} when Failed;
+				v_bu3IWM_Fail1: error source out1 {BadValue} when Failed;
+				v_bu3IWM_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu3_in4_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu3IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu3in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu3IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit3_IWM.iwm;
+
+	process implementation Brake_Unit3_EMB.emb
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3EMB_Fail: error source out1 {NoValue} when Failed;
+				v_bu3EMB_Fail: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu3EMB_PwConverterFail: error path in1 {NoValue} -> out1 {NoValue};
+				v_bu3EMB_PwConverterFail: error path in1 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit3_EMB.emb;
+
+	process Brake_Unit3_Add
+	features
+		in1 : in data port;
+		in2 : in data port;
+		Braking : out data port;
+	end Brake_Unit3_Add;
+
+	process implementation Brake_Unit3_Add.ad
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Braking: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu3Add_Fail: error source Braking {NoValue} when Failed;
+				v_bu3Add_Fail: error source Braking {BadValue} when Failed;
+					---input deviations
+				o_bu3EMB_Fail: error path in1 {NoValue} -> Braking {NoValue};
+				o_bu3IWM_Fail: error path in2 {NoValue} -> Braking {NoValue};
+				v_bu3EMB_Fail: error path in1 {BadValue} -> Braking {BadValue};
+				v_bu3IWM_Fail: error path in2 {BadValue} -> Braking {BadValue};
+			end propagations;
+			
+			component error behavior
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> Braking {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit3_Add.ad;
+
+	system Brake_Unit4
+	features
+		in1 : in data port;
+		in2 : in data port;
+		in3 : in data port;
+		in4 : in data port;
+		Generated_Power4 : out data port;
+		Braking_T4 : out data port;
+		
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power4: out propagation {NoValue, BadValue};
+				Braking_T4: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4Fail1: error source Generated_Power4 {NoValue} when Failed;
+				o_bu4Fail2: error source Braking_T4 {NoValue} when Failed;
+				v_bu4Fail1: error source Generated_Power4 {NoValue} when Failed;
+				v_bu4Fail2: error source Braking_T4 {NoValue} when Failed;
+					---omission input deviations
+				o_bu4_in1Fail: error path in1 {NoValue} -> Braking_T4 {NoValue};
+				o_bu4_in2Fail: error path in2 {NoValue} -> Braking_T4 {NoValue};
+				o_bu4_in3Fail: error path in3 {NoValue} -> Generated_Power4 {NoValue};
+				o_bu4_in4Fail: error path in4 {NoValue} -> Generated_Power4 {NoValue};
+					--value input deviations	
+				v_bu4_in1Fail: error path in1 {BadValue} -> Braking_T4 {BadValue};
+				v_bu4_in2Fail: error path in2 {BadValue} -> Braking_T4 {BadValue};
+				v_bu4_in3Fail: error path in3 {BadValue} -> Generated_Power4 {BadValue};
+				v_bu4_in4Fail: error path in4 {BadValue} -> Generated_Power4 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw4: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power4 {NoValue};
+				o_brak_t4: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T4 {NoValue};
+				v_gen_pw4: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power4 {BadValue};
+				v_brak_t4: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T4 {BadValue};
+			end component;
+		**};	
+		
+	end Brake_Unit4;
+
+	system implementation Brake_Unit4.bu4
+	subcomponents
+		wnc : process Brake_Unit4_WNC.wnc;
+		embPw : process Brake_Unit4_EMB_Power_Converter.embpw;
+		iwmPw : process Brake_Unit4_IWM_Power_Converter.iwmpw;
+		iwm: process Brake_Unit4_IWM.iwm;
+		ad : process Brake_Unit4_Add.ad;
+		emb : process Brake_Unit4_EMB.emb;
+		
+		connections
+			Bin1WNC: port in1 -> wnc.in1;
+			Bin22WNC: port in2 -> wnc.in2; 
+			Bin32EMBPW: port in3 -> embPw.in2; 
+			Bin42IWM: port in4 -> iwm.in1;
+						
+			WNC12EMBPw: port wnc.out1 -> embPw.in1;
+			EMBPwout2EMB: port embPw.out1 -> emb.in1;
+			EMBout12Add: port emb.out1 -> ad.in1;
+			Addout2Braking_T4: port ad.Braking -> Braking_T4;
+			
+			WNC22IWMPw: port wnc.out2 -> iwmPw.in1;
+			IWMPw2BoutGenPower: port iwmPw.out1 -> Generated_Power4;
+			IWMPwout22IWM: port iwmPw.out2 -> iwm.in2;
+			IWM2IWMPw: port iwm.out2 -> iwmPw.in2;
+			IWM2Add: port iwm.out1 -> ad.in2;
+			
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Generated_Power4: out propagation {NoValue, BadValue};
+				Braking_T4: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+				in3: in propagation {NoValue, BadValue};
+				in4: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4Fail1: error source Generated_Power4 {NoValue} when Failed;
+				o_bu4Fail2: error source Braking_T4 {NoValue} when Failed;
+				v_bu4Fail1: error source Generated_Power4 {NoValue} when Failed;
+				v_bu4Fail2: error source Braking_T4 {NoValue} when Failed;
+					---omission input deviations
+				o_bu4_in1Fail: error path in1 {NoValue} -> Braking_T4 {NoValue};
+				o_bu4_in2Fail: error path in2 {NoValue} -> Braking_T4 {NoValue};
+				o_bu4_in3Fail: error path in3 {NoValue} -> Generated_Power4 {NoValue};
+				o_bu4_in4Fail: error path in4 {NoValue} -> Generated_Power4 {NoValue};
+					--value input deviations	
+				v_bu4_in1Fail: error path in1 {BadValue} -> Braking_T4 {BadValue};
+				v_bu4_in2Fail: error path in2 {BadValue} -> Braking_T4 {BadValue};
+				v_bu4_in3Fail: error path in3 {BadValue} -> Generated_Power4 {BadValue};
+				v_bu4_in4Fail: error path in4 {BadValue} -> Generated_Power4 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in3 {NoValue}]-> Failed;
+				t4: Operational -[in4 {NoValue}]-> Failed;
+				t5: Operational -[in1 {BadValue}]-> Failed;
+				t6: Operational -[in2 {BadValue}]-> Failed;
+				t7: Operational -[in3 {BadValue}]-> Failed;
+				t8: Operational -[in4 {BadValue}]-> Failed;
+			propagations
+				o_gen_pw1: Operational -[in3 {NoValue} and in4 {NoValue}]-> Generated_Power4 {NoValue};
+				o_brak_t1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking_T4 {NoValue};
+				v_gen_pw1: Operational -[in3 {BadValue} and in4 {BadValue}]-> Generated_Power4 {BadValue};
+				v_brak_t1: Operational -[in1 {BadValue} and in2 {BadValue}]-> Braking_T4 {BadValue};
+			end component;
+		**};	
+	end Brake_Unit4.bu4;
+
+	process Brake_Unit4_WNC
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+	end Brake_Unit4_WNC;
+
+	process implementation Brake_Unit4_WNC.wnc
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4IWMFail1: error source out1 {NoValue} when Failed;
+				o_bu4IWMFail2: error source out2 {NoValue} when Failed;
+				v_bu4IWMFail1: error source out1 {BadValue} when Failed;
+				v_bu4IWMFail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu4IWM_in4Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu4IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu4IWM_in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu4IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				o_out2: Operational -[(in1 {NoValue} and in2 {NoValue})]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or (in1 {BadValue} and in2 {BadValue})]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit4_WNC.wnc;
+
+	process Brake_Unit4_EMB_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+	end Brake_Unit4_EMB_Power_Converter;
+
+	process implementation Brake_Unit4_EMB_Power_Converter.embpw
+			annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4EMB_PwFail1: error source out1 {NoValue} when Failed;
+				v_bu4EMB_PWFail1: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu4WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu4_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu4WNC_Fail1: error path in1 {BadValue} -> out1 {BadValue};
+				v_bu4_Fail2: error path in2 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};	
+	
+	end Brake_Unit4_EMB_Power_Converter.embpw;
+
+	process Brake_Unit4_IWM_Power_Converter
+	features
+		in1 : in data port;
+		in2 : in data port;
+		out1 : out data port;
+		out2 : out data port;
+	end Brake_Unit4_IWM_Power_Converter;
+
+	process implementation Brake_Unit4_IWM_Power_Converter.iwmpw
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4IWM_PW_Fail1: error source out1 {NoValue} when Failed;
+				o_bu4IWM_PW_Fail2: error source out2 {NoValue} when Failed;
+				v_bu4IWM_PW_Fail1: error source out1 {BadValue} when Failed;
+				v_bu4IWM_PW_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu4WNC_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu4IWM_Fail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu4WNC_Fail1: error path in1 {BadValue} -> out2 {BadValue};
+				v_bu4IWM_Fail2: error path in2 {BadValue} -> out2 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	end Brake_Unit4_IWM_Power_Converter.iwmpw;
+
+	process Brake_Unit4_EMB
+	features
+		in1 : in data port;
+		out1 : out data port;
+	end Brake_Unit4_EMB;
+
+	process Brake_Unit4_IWM
+	features
+		in1 : in data port;
+		out1 : out data port;
+		in2 : in data port;
+		out2 : out data port;
+	end Brake_Unit4_IWM;
+
+	process implementation Brake_Unit4_IWM.iwm
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				out2: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4IWM_Fail1: error source out1 {NoValue} when Failed;
+				o_bu4IWM_Fail2: error source out2 {NoValue} when Failed;
+				v_bu4IWM_Fail1: error source out1 {BadValue} when Failed;
+				v_bu4IWM_Fail2: error source out2 {BadValue} when Failed;
+					---input deviations
+				o_bu4_in4_Fail1: error path in1 {NoValue} -> out1 {NoValue};
+				o_bu4IWM_PwConverterFail2: error path in2 {NoValue} -> out1 {NoValue};
+				v_bu4in4Fail1: error path in1 {NoValue} -> out2 {NoValue};
+				v_bu4IWM_PwConverterFail2: error path in2 {NoValue} -> out2 {NoValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t2: Operational -[in2 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+				t4: Operational -[in2 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue} or in2 {NoValue}]-> out1 {NoValue};
+				o_out2: Operational -[in1 {NoValue} or in2 {NoValue}]-> out2 {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> out1 {BadValue};
+				v_out2: Operational -[in1 {BadValue} or in2 {BadValue}]-> out2 {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit4_IWM.iwm;
+
+	process implementation Brake_Unit4_EMB.emb
+	
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				out1: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4EMB_Fail: error source out1 {NoValue} when Failed;
+				v_bu4EMB_Fail: error source out1 {BadValue} when Failed;
+					---input deviations
+				o_bu4EMB_PwConverterFail: error path in1 {NoValue} -> out1 {NoValue};
+				v_bu4EMB_PwConverterFail: error path in1 {BadValue} -> out1 {BadValue};
+			end propagations;
+			
+			component error behavior
+			transitions
+				t1: Operational -[in1 {NoValue}]-> Failed;
+				t3: Operational -[in1 {BadValue}]-> Failed;
+			propagations
+				o_out1: Operational -[in1 {NoValue}]-> out1 {NoValue};
+				v_out1: Operational -[in1 {BadValue}]-> out1 {BadValue};
+			end component;
+		**};
+	end Brake_Unit4_EMB.emb;
+
+	process Brake_Unit4_Add
+	features
+		in1 : in data port;
+		in2 : in data port;
+		Braking : out data port;
+	end Brake_Unit4_Add;
+
+	process implementation Brake_Unit4_Add.ad
+		annex emv2{**
+			use types ErrorModelLibrary;
+			use behavior ErrorModelLibrary::Simple;
+			
+			error propagations
+				Braking: out propagation {NoValue, BadValue};
+				in1: in propagation {NoValue, BadValue};
+				in2: in propagation {NoValue, BadValue};
+			flows
+				---output deviation
+				o_bu4Add_Fail: error source Braking {NoValue} when Failed;
+				v_bu4Add_Fail: error source Braking {BadValue} when Failed;
+					---input deviations
+				o_bu4EMB_Fail: error path in1 {NoValue} -> Braking {NoValue};
+				o_bu4IWM_Fail: error path in2 {NoValue} -> Braking {NoValue};
+				v_bu4EMB_Fail: error path in1 {BadValue} -> Braking {BadValue};
+				v_bu4IWM_Fail: error path in2 {BadValue} -> Braking {BadValue};
+			end propagations;
+			
+			component error behavior
+			propagations
+				o_out1: Operational -[in1 {NoValue} and in2 {NoValue}]-> Braking {NoValue};
+				v_out1: Operational -[in1 {BadValue} or in2 {BadValue}]-> Braking {BadValue};
+			end component;
+		**};
+	
+	end Brake_Unit4_Add.ad;
+
+end hbs_spl;
